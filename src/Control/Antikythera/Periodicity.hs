@@ -41,11 +41,11 @@ import Data.Semigroup
 
 -- | Event recurring period
 --
--- Are we at 17:*?
+-- Are we at @17:*@?
 --
 -- > (at 17 hour).includes now
 --
--- Next *:05
+-- Next @*:05@
 --
 -- > (at 5 minute).nextPeriod now
 data Periodicity a = Periodicity
@@ -64,7 +64,14 @@ never =
     }
 
 -- | Always happen
-always :: (a -> a) -> Periodicity a
+--
+-- Going from minute to minute:
+--
+-- > always (addUTCTime $ secondsToNominalDiffTime 60)
+always ::
+  -- | Increment to next value
+  (a -> a) ->
+  Periodicity a
 always f =
   Periodicity
     { includes = const True,
@@ -75,9 +82,13 @@ always f =
 
 -- | Intersection of two periods
 --
--- Everyday at 15:15
+-- Everyday at @15:15@
 --
 -- > at 15 hour .&& at 15 minute
+--
+-- __Warning:__ may loop infinitelly when impossible constraints, e.g.
+--
+-- > at 15 minutes .&& at 15 minute
 (.&&) :: (Ord a) => Periodicity a -> Periodicity a -> Periodicity a
 x .&& y =
   Periodicity
@@ -98,7 +109,7 @@ infixr 3 .&&
 
 -- | Union of two periods
 --
--- Everyday at 15:* or every hour at *:15
+-- Everyday at @15:*@ or every hour at @*:15@
 --
 -- > at 15 hour .|| at 15 minute
 (.||) :: (Ord a) => Periodicity a -> Periodicity a -> Periodicity a
@@ -119,6 +130,8 @@ infixr 2 .||
 -- Same as
 --
 -- > allOf = foldl1 (.&&)
+--
+-- __Warning:__ may loop infinitelly when impossible constraints, see '(.&&)'
 allOf :: (Ord a) => NE.NonEmpty (Periodicity a) -> Periodicity a
 allOf = foldl1 (.&&)
 
@@ -135,6 +148,8 @@ anyOf = foldl1 (.||)
 -- Same as
 --
 -- > allOf' = foldl (.&&) . always
+--
+-- __Warning:__ may loop infinitelly when impossible constraints, see '(.&&)'
 allOf' :: (Foldable f, Ord a) => (a -> a) -> f (Periodicity a) -> Periodicity a
 allOf' = foldl (.&&) . always
 
@@ -150,7 +165,7 @@ anyOf' = foldl (.||) never
 
 -- | Happens when the 'Unit' has a value
 --
--- Every hour at *:05
+-- Every hour at @*:05@
 --
 -- > at 5 minute
 at :: (Eq i) => i -> Unit i a -> Periodicity a
@@ -162,7 +177,7 @@ at n u =
 
 -- | Happens when the 'Unit' has one of the values
 --
--- Every hour at *:05 and *:35
+-- Every hour at @*:05@ and @*:35@
 --
 -- > ats [5, 35] minute
 --
@@ -184,7 +199,7 @@ ats ns u =
 
 -- | Happens when the 'Unit' has a value with a modulo
 --
--- Every hour at *:00, *:15, *:30, and *:45
+-- Every hour at @*:00@, @*:15@, @*:30@, and @*:45@
 --
 -- > every 15 minute
 every :: (Integral i) => i -> Unit i a -> Periodicity a
@@ -198,7 +213,7 @@ every n u =
 
 -- | Happens when the 'Unit' has a value in an inclusive range
 --
--- Every hour at *:05, *:06, *:07, *:08, *:09, *:10
+-- Every hour at @*:05@, @*:06@, @*:07@, @*:08@, @*:09@, @*:10@
 --
 -- > inclusiveRange (Min 5) (Max 10) minute
 inclusiveRange :: (Enum i, Ord i) => Min i -> Max i -> Unit i a -> Periodicity a
