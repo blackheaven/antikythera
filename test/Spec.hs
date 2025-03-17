@@ -13,9 +13,11 @@ main = hspec spec
 spec :: Spec
 spec =
   describe "Antikythera" $ do
+    let testFor :: (ISO8601 a) => Periodicity a -> String -> Maybe String
+        testFor p x = iso8601Show <$> p.nextPeriod (time x)
+        time :: (ISO8601 a) => String -> a
+        time = unsafePerformIO . iso8601ParseM
     describe "ZonedTime" $ do
-      let testFor :: (ISO8601 a) => Periodicity a -> String -> Maybe String
-          testFor p x = iso8601Show <$> p.nextPeriod (unsafePerformIO $ iso8601ParseM x)
       describe "every 5 minutes" $ do
         let t = testFor @ZonedTime $ every 5 minute
         it "non overflowing" $
@@ -98,3 +100,20 @@ spec =
           t "2025-03-15T02:01:50+01:00" `shouldBe` Just "2025-03-15T05:05:00+01:00"
         it "overflowing day" $
           t "2025-03-15T23:56:50+01:00" `shouldBe` Just "2025-03-16T05:05:00+01:00"
+    describe "ZonedTime" $ do
+      describe "at 5 hour .&& sinceInclusive" $ do
+        let t = testFor @UTCTime (at 5 hour .&& sinceInclusive (addUTCTime nominalDay) (time "2025-03-15T04:05:00Z"))
+        it "non overflowing" $
+          t "2025-03-15T02:01:50Z" `shouldBe` Just "2025-03-15T05:00:00Z"
+        it "overflowing day (at)" $
+          t "2025-03-15T23:56:50Z" `shouldBe` Just "2025-03-16T05:00:00Z"
+        it "overflowing day (sinceInclusive)" $
+          t "2025-03-14T23:56:50Z" `shouldBe` Just "2025-03-15T05:00:00Z"
+      describe "at 5 hour .&& untilInclusive" $ do
+        let t = testFor @UTCTime (at 5 hour .&& untilInclusive (addUTCTime nominalDay) (time "2025-03-17T04:05:00Z"))
+        it "non overflowing" $
+          t "2025-03-15T02:01:50Z" `shouldBe` Just "2025-03-15T05:00:00Z"
+        it "overflowing day (at)" $
+          t "2025-03-15T23:56:50Z" `shouldBe` Just "2025-03-16T05:00:00Z"
+        it "overflowing day (untilInclusive)" $
+          t "2025-03-16T23:56:50Z" `shouldBe` Nothing

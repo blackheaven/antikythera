@@ -29,6 +29,10 @@ module Control.Antikythera.Periodicity
     every,
     inclusiveRange,
 
+    -- * Absolute builders
+    sinceInclusive,
+    untilInclusive,
+
     -- * Reexports
     Max (..),
     Min (..),
@@ -36,6 +40,7 @@ module Control.Antikythera.Periodicity
 where
 
 import Control.Antikythera.Unit.Unit
+import Control.Monad (mfilter)
 import qualified Data.List.NonEmpty as NE
 import Data.Semigroup
 
@@ -227,3 +232,36 @@ inclusiveRange (Min lowerBound) (Max upperBound) u =
       if x < upperBound
         then succ x
         else lowerBound
+
+-- * Absolute builders
+
+-- | An event only hapenning /since/
+sinceInclusive ::
+  (Ord a) =>
+  -- | Increment to next value
+  (a -> a) ->
+  a ->
+  Periodicity a
+sinceInclusive f startingAt =
+  Periodicity
+    { includes = (>= startingAt),
+      nextPeriod =
+        \x ->
+          Just $
+            if x < startingAt
+              then startingAt
+              else f x
+    }
+
+-- | An event only hapenning /until/
+untilInclusive ::
+  (Ord a) =>
+  -- | Increment to next value
+  (a -> a) ->
+  a ->
+  Periodicity a
+untilInclusive f endingAt =
+  Periodicity
+    { includes = (<= endingAt),
+      nextPeriod = mfilter (<= endingAt) . Just . f
+    }
