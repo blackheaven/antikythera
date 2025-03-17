@@ -10,6 +10,7 @@
 -- Defining a 'Periodicity', how often/when an event occurs
 module Control.Antikythera.Periodicity
   ( Periodicity (..),
+    nextPeriods,
 
     -- * Base helpers
     never,
@@ -40,7 +41,9 @@ module Control.Antikythera.Periodicity
 where
 
 import Control.Antikythera.Unit.Unit
+import Control.Arrow ((&&&))
 import Control.Monad (mfilter)
+import Data.List (unfoldr)
 import qualified Data.List.NonEmpty as NE
 import Data.Semigroup
 
@@ -57,6 +60,12 @@ data Periodicity a = Periodicity
   { includes :: a -> Bool,
     nextPeriod :: a -> Maybe a
   }
+
+-- | Get a poentially infinite list of upcoming event
+--
+-- __Warning:__ may loop infinitelly
+nextPeriods :: Periodicity a -> a -> [a]
+nextPeriods p = unfoldr (fmap (id &&& id) . p.nextPeriod)
 
 -- * Base helpers
 
